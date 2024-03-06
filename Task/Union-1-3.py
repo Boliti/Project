@@ -11,14 +11,13 @@ from tkinter import *
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.figure import Figure
 from time import perf_counter
-from numba import jit
+
 
 
 from tkinter import filedialog, messagebox
 from scipy.signal import find_peaks
 
 #Функция удаления базовой линии 
-@jit(fastmath=False)
 def baseline_als(amplitudes, lam, p, niter=10): 
   L = len(amplitudes) 
   D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(L, L-2)) 
