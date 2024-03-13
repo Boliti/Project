@@ -12,9 +12,6 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationTool
 from matplotlib.figure import Figure
 from time import perf_counter
 
-
-
-from tkinter import filedialog, messagebox
 from scipy.signal import find_peaks
 
 #Функция удаления базовой линии 
@@ -28,6 +25,20 @@ def baseline_als(amplitudes, lam, p, niter=10):
     z = spsolve(Z, w*amplitudes) 
     w = p * (amplitudes > z) + (1-p) * (amplitudes < z) 
   return z 
+
+
+def normalize_spectra_batch(spectra_batch):
+    max_value = np.max(spectra_batch)
+    min_value = np.min(spectra_batch)
+    
+    normalized_spectra_batch = (spectra_batch - min_value) / (max_value - min_value)
+    
+    return normalized_spectra_batch
+
+def average_spectrum(spectra_batch):
+    average_spectrum = np.mean(spectra_batch, axis=0)
+    
+    return average_spectrum
 
 #Запоминание переменных lam и p 
 def get_input():
@@ -104,7 +115,7 @@ def build2(frequencies_list, amplitudes_list, lam, p):
               cleaned_spectrum = amplitudes - baseline 
               ax.plot(frequencies, cleaned_spectrum) 
         else: 
-            ax.plot(frequencies, amplitudes)
+            ax.plot(frequencies, average_spectrum(amplitudes_list))
     ax.set_xlabel('Рамановский сдвиг, см^-1') 
     ax.set_ylabel('Интенсивность') 
     ax.legend() 
