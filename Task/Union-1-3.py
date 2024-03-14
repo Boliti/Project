@@ -56,7 +56,7 @@ def get_input():
   if new_flag:
     frame.destroy()    
   if bild_flag:
-    build1(frequencies, amplitudes, lam, p)
+    build2(frequencies, amplitudes, lam, p)
   else:
     build2(frequencies_list, amplitudes_list, lam, p)
 
@@ -156,6 +156,7 @@ def open_folder():
     root = Tk()
     root.withdraw()
     folderpath = filedialog.askdirectory()
+    print(folderpath, type(folderpath))
     if folderpath:  
         try:  
             filepaths = []
@@ -172,6 +173,7 @@ def open_folder():
             messagebox.showerror("Error", f"An error occurred while opening the folder: {e}")  
     else:  
         messagebox.showwarning("Warning", "No folder selected.")
+
     global bild_flag
     bild_flag = False
 
