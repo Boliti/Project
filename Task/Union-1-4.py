@@ -29,14 +29,6 @@ def baseline_als(amplitudes, lam, p, niter=10):
   return z 
 
 
-def normalize_spectra_batch(spectra_batch):
-    max_value = np.max(spectra_batch)
-    min_value = np.min(spectra_batch)
-    
-    normalized_spectra_batch = (spectra_batch - min_value) / (max_value - min_value)
-    
-    return normalized_spectra_batch
-
 def average_spectrum(spectra_batch):
     average_spectrum = np.mean(spectra_batch, axis=0)
     
@@ -59,12 +51,16 @@ def get_input():
         frame.destroy() 
     build(frequencies_list, amplitudes_list, lam, p)
 
-
+#Функция выбора цвета
+def selection_color():
+    g = np.random.random()
+    b = np.random.random()
+    return (0, g, b)
 
 #Создание графика
 
 def build(frequencies_list, amplitudes_list, lam, p):
-    global frequencies, amplitudes, remove_flag, find_flag, frame, root
+    global remove_flag, find_flag, frame, root
     frame = tk.Frame(root) 
     frame.pack() 
     fig = Figure(figsize=(20, 6)) 
@@ -76,19 +72,22 @@ def build(frequencies_list, amplitudes_list, lam, p):
             for amplitudes in amplitudes_list:
               baseline = baseline_als(amplitudes, lam, p)  
               cleaned_spectrum = amplitudes - baseline 
-              ax.plot(frequencies, cleaned_spectrum, alpha=0.5)
-              ave_spectrums.append(cleaned_spectrum)
+              ax.plot(frequencies, cleaned_spectrum, color = selection_color(), alpha=0.8)
           else:
-                ave_spectrum = average_spectrum(ave_spectrums)
-                ax.plot(frequencies, ave_spectrum, color='g')
+              for amplitudes in amplitudes_list:
+                baseline = baseline_als(amplitudes, lam, p)  
+                cleaned_spectrum = amplitudes - baseline
+                ave_spectrums.append(cleaned_spectrum) 
+              ave_spectrum = average_spectrum(ave_spectrums)
+              ax.plot(frequencies, ave_spectrum, color=selection_color())
         else:
             if average_flag:
               for amplitudes in amplitudes_list:
                 ave_spectrums.append(amplitudes)
               ave_spectrum = average_spectrum(ave_spectrums)
-              ax.plot(frequencies, ave_spectrum, color='g')
+              ax.plot(frequencies, ave_spectrum, color=selection_color())
             else:
-               ax.plot(frequencies, amplitudes,alpha=0.5)
+               ax.plot(frequencies, amplitudes, color = selection_color(), alpha=0.8)
         if find_flag:
           peaks, _ = find_peaks(ave_spectrum, width=10, prominence=10)
           ax.plot(frequencies[peaks], ave_spectrum[peaks], 'ro')
@@ -109,28 +108,26 @@ def build(frequencies_list, amplitudes_list, lam, p):
 
 # открытие файла 
 def open_folder():
-  root = tk.Tk()
-  root.withdraw()
-    # Используем askdirectory для выбора папки, содержащей нужные файлы
-  folderpath = filedialog.askopenfilenames(initialdir="/", title="Выберите файлы",
-                                                    filetypes=(("ESP files", "*.esp"), ("Text files", "*.txt"), ("All files", "*.*")))
-  if folderpath:
-        try:
-            for path in folderpath:
-                try:
-                    data = np.genfromtxt(path, skip_header=1)
-                    frequencies = data[:, 0]
-                    amplitudes = data[:, 1]
-                    frequencies_list.append(frequencies)
-                    amplitudes_list.append(amplitudes)
-                except Exception as e:
-                    print(f"Ошибка обработки файла {path}: {e}")  # Информативное сообщение об ошибке
-        except Exception as e:
-            messagebox.showerror("Ошибка", f"11Произошла ошибка: {e}")
-  else:
-        messagebox.showwarning("Предупреждение", "Папка не выбрана.")
+    root = tk.Tk()
+    root.withdraw()
+    folderpath = filedialog.askopenfilenames(title="Выберите файлы",
+                                                      filetypes=(("ESP files", "*.esp"), ("Text files", "*.txt"), ("All files", "*.*")))
+    if folderpath:
+          try:
+              for path in folderpath:
+                  try:
+                      data = np.genfromtxt(path, skip_header=1)
+                      frequencies = data[:, 0]
+                      amplitudes = data[:, 1]
+                      frequencies_list.append(frequencies)
+                      amplitudes_list.append(amplitudes)
+                  except Exception as e:
+                      print(f"Ошибка обработки файла {path}: {e}")  # Информативное сообщение об ошибке
+          except Exception as e:
+              messagebox.showerror("Ошибка", f"11Произошла ошибка: {e}")
+    else:
+          messagebox.showwarning("Предупреждение", "Папка не выбрана.")
 
-  print(amplitudes_list)
 # выбор действия
 def actions1():  
   global remove_flag, frame
