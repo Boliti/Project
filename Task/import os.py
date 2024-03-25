@@ -40,8 +40,5 @@ for i in range(0, len(average_spectrum), step):
     plt.plot([i, i], [min_val, max_val], color='gray', linestyle='-',
              linewidth=1)  # Соединение минимальной и максимальной точек серой тонкой линией
 
-    plt.text(i, min_val, f'{i:.1f} \n {min_val:.1f}', color='black', fontsize=8, ha='right')
-    plt.text(i, max_val, f'{i:.1f} \n {max_val:.1f}', color='black', fontsize=8, ha='right')
-
 plt.legend()
 plt.show()

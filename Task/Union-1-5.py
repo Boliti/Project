@@ -16,7 +16,8 @@ from time import perf_counter
 
 from scipy.signal import find_peaks
 
-#Функция удаления базовой линии 
+#Функции удаления базовой линии
+  #Функция нахождения БЛ
 def baseline_als(amplitudes, lam, p, niter=10): 
   L = len(amplitudes) 
   D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(L, L-2)) 
@@ -28,63 +29,120 @@ def baseline_als(amplitudes, lam, p, niter=10):
     w = p * (amplitudes > z) + (1-p) * (amplitudes < z) 
   return z 
 
+  #Функция удаления БЛ
+def  delet_BaseLime(amplitudes_list): 
+  lam = entry1.get() 
+  if lam == "lam = 1000":
+      lam = 1000
+  else:  
+      lam = float(entry1.get()) 
+  p = entry2.get()  
+  if p == "p = 0.001":
+      p = 0.001
+  else:  
+      p = float(entry2.get())
+  amplitudesBL_list = []
+  for amplitudes in amplitudes_list:
+    baseline = baseline_als(amplitudes, lam, p)  
+    cleaned_spectrum = amplitudes - baseline
+    amplitudesBL_list.append(cleaned_spectrum)
+  return amplitudesBL_list
 
-def normalize_spectra_batch(spectra_batch):
-    max_value = np.max(spectra_batch)
-    min_value = np.min(spectra_batch)
+#Строительтво графика.
+def bilding(frequencies_list, amplitudes_list ):
+    global  new_flag, frame, root
+    if new_flag:
+      frame.destroy() 
+    frame = tk.Frame(root) 
+    frame.pack() 
+    fig = Figure(figsize=(20, 6)) 
+    ax = fig.add_subplot()
+    print(len(amplitudes_list))
+    print(len(frequencies_list))
+    for i in range(len(amplitudes_list)):
+      ax.plot(frequencies_list[i], amplitudes_list[i], color = selection_color(), alpha=0.5)
     
-    normalized_spectra_batch = (spectra_batch - min_value) / (max_value - min_value)
-    
-    return normalized_spectra_batch
+    ax.set_xlabel('Рамановский сдвиг, см^-1') 
+    ax.set_ylabel('Интенсивность') 
+    canvas = FigureCanvasTkAgg(fig, master=frame) 
+    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1) 
+    canvas.draw() 
+    toolbar = NavigationToolbar2Tk(canvas, frame) 
+    toolbar.update()
+    new_flag = True
 
-def average_spectrum(spectra_batch):
-    average_spectrum = np.mean(spectra_batch, axis=0)
-    
-    return average_spectrum
+
+
+#Функция средней спектрограммы
+def averages_spectrum(averaged):
+  averaged2 = []
+  averaged = np.mean(np.array(averaged), axis=0)
+  averaged2.append(averaged)
+  return averaged2
+
+
+def normal(list):
+  list = np.array(list)
+  max = np.max(list)
+  for i in range(len(list)):
+      list[i] /= max
+  return (list)
+   
 
 #Запоминание переменных lam и p 
 def get_input():
-    global lam, p, frame
-    lam = entry1.get() 
-    if lam == "lam = 1000":
-        lam = 1000
-    else:  
-        lam = float(entry1.get()) 
-    p = entry2.get() 
-    if p == "p = 0.001":
-        p = 0.001
-    else:  
-        p = float(entry2.get())
-    if new_flag:
-        frame.destroy() 
-    build(frequencies_list, amplitudes_list, lam, p)
+  global remove_flag, average_flag, amplitudes_list, frequencies_list
+  timer = perf_counter()
+  amplitudes_LIST = amplitudes_list
+  frequencies_LIST = frequencies_list
+  if remove_flag:
+       amplitudes_LIST = delet_BaseLime(amplitudes_LIST)
+  if average_flag:
+       amplitudes_LIST = averages_spectrum(amplitudes_LIST)
+       frequencies_LIST = averages_spectrum(frequencies_list)
 
+  bilding(frequencies_LIST, amplitudes_LIST)
+  print(perf_counter() - timer)
+  #build(frequencies_list, amplitudes_list, lam, p)
 
+#Функция выбора цвета
+def selection_color():
+    r = np.random.random()
+    g = np.random.random()
+    b = np.random.random()
+    return (0.5, g, b)
 
 #Создание графика
-
+'''
 def build(frequencies_list, amplitudes_list, lam, p):
-    global frequencies, amplitudes, remove_flag, find_flag, frame, root
+    global remove_flag, find_flag, frame, root
     frame = tk.Frame(root) 
     frame.pack() 
     fig = Figure(figsize=(20, 6)) 
     ax = fig.add_subplot()
     ave_spectrums = []
-    for i, (frequencies, amplitudes) in enumerate(zip(frequencies_list, amplitudes_list)):
+    for frequencies, amplitudes in zip(frequencies_list, amplitudes_list):
         if remove_flag:
-          for amplitudes in amplitudes_list:
-            baseline = baseline_als(amplitudes, lam, p)  
-            cleaned_spectrum = amplitudes - baseline 
-            ax.plot(frequencies, cleaned_spectrum, alpha=0.5)
-            ave_spectrums.append(cleaned_spectrum)
+          if not average_flag:
+            for amplitudes in amplitudes_list:
+              baseline = baseline_als(amplitudes, lam, p)  
+              cleaned_spectrum = amplitudes - baseline 
+              ax.plot(frequencies, cleaned_spectrum, color = selection_color(), alpha=0.8)
+          else:
+              for amplitudes in amplitudes_list:
+                baseline = baseline_als(amplitudes, lam, p)  
+                cleaned_spectrum = amplitudes - baseline
+                ave_spectrums.append(cleaned_spectrum) 
+              ave_spectrum = average_spectrum(ave_spectrums)
+              ax.plot(frequencies, ave_spectrum, color=selection_color())
         else:
-          ax.plot(frequencies, amplitudes,alpha=0.5)
-          for amplitudes in amplitudes_list:
-            ave_spectrums.append(amplitudes)
-        if average_flag:
-          ave_spectrum = average_spectrum(ave_spectrums)
-          ax.plot(frequencies, ave_spectrum, color='g')
-          
+            if average_flag:
+              for amplitudes in amplitudes_list:
+                ave_spectrums.append(amplitudes)
+              ave_spectrum = average_spectrum(ave_spectrums)
+              ax.plot(frequencies, ave_spectrum, color=selection_color())
+            else:
+               ax.plot(frequencies, amplitudes, color = selection_color(), alpha=0.8)
         if find_flag:
           peaks, _ = find_peaks(ave_spectrum, width=10, prominence=10)
           ax.plot(frequencies[peaks], ave_spectrum[peaks], 'ro')
@@ -101,53 +159,41 @@ def build(frequencies_list, amplitudes_list, lam, p):
     toolbar.update()
     global new_flag
     new_flag = True
-
+'''
 
 # открытие файла 
-def open_file(): 
-  filepath = filedialog.askopenfilename(initialdir="/", title="Select file",
-                     filetypes=(("ESP files", "*.esp"), ("Text files", "*.txt"), ("All files", "*.*")))
-  if filepath: 
-    try: 
-      data = np.loadtxt(filepath)
-      global frequencies, amplitudes, label 
-      frequencies = data[:, 0] 
-      amplitudes = data[:, 1]
-      frequencies_list.append(frequencies)
-      amplitudes_list.append(amplitudes) 
-      # Вывод названия обрабатываемого файла
-      frame = tk.Frame(root)
-      label = tk.Label(root, text="Обрабатываемый файл: " + filepath)
-      label.config(font=("Courier", 14))
-      label.pack()
-      frame.pack()     
-    except Exception as e: 
-      messagebox.showerror("Error", f"An error occurred while opening the file: {e}") 
-  else: 
-    messagebox.showwarning("Warning", "No file selected.")
-# открытие папки
-def open_folder():
-    root = Tk()
-    root.withdraw()
-    folderpath = filedialog.askdirectory()
-    if folderpath:  
-        try:  
-            filepaths = []
-            for root, _, files in os.walk(folderpath):  # Используем "_", чтобы проигнорировать лишние значения
-                for file in files: 
-                    filepaths.append(os.path.join(root, file))
-            for path in filepaths: 
-                data = np.genfromtxt(path, skip_header=1)
-                frequencies = data[:, 0] 
-                amplitudes = data[:, 1]
-                frequencies_list.append(frequencies)
-                amplitudes_list.append(amplitudes)
-        except Exception as e:  
-            messagebox.showerror("Error", f"An error occurred while opening the folder: {e}")  
-    else:  
-        messagebox.showwarning("Warning", "No folder selected.")
 
-        
+def open_folder():
+    global frequencies_list, amplitudes_list
+    frequencies_list = []
+    amplitudes_list = []
+    frequencies_list2 = []
+    amplitudes_list2 = []
+    root = tk.Tk()
+    root.withdraw()
+    folderpath = filedialog.askopenfilenames(title="Выберите файлы", filetypes=(("ESP files", "*.esp"), ("Text files", "*.txt"), ("All files", "*.*")))
+    if folderpath:
+        time = perf_counter()
+        for path in folderpath:
+            data = np.genfromtxt(path, skip_header=1)
+            frequencies_list2.append(data[:, 0])
+            amplitudes_list2.append(data[:, 1])
+
+        for frequencies, amplitudes in zip(frequencies_list2, amplitudes_list2):
+            mask = (frequencies >= 0) & (frequencies <= 100000000)
+            if np.any(mask):
+                frequencies_list.append(frequencies[mask])
+                amplitudes_list.append(amplitudes[mask])
+
+
+        #for a in range(len(amplitudes_list)):
+            #amplitudes_list[a] = normal(amplitudes_list[a])
+
+        bilding(frequencies_list, amplitudes_list)
+    else:
+        messagebox.showwarning("Предупреждение", "Файлы не выбраны.")
+
+    print(perf_counter() - time)
 
 # выбор действия
 def actions1():  
@@ -187,13 +233,11 @@ def on_entry_click(event):
     entry.delete(0, tk.END)
 #Удаление данных
 def clear_data():
-  global frequencies, amplitudes, remove_flag, find_flag, cleaned_spectrum
-  frequencies = np.array([])
-  amplitudes = np.array([])
-  cleaned_spectrum = np.array([])
+  global amplitudes_list, frequencies_list, remove_flag, find_flag
+  amplitudes_list = []
+  frequencies_list = []
   find_flag = False
   frame.destroy()
-  label.destroy()
   actions.entryconfigure(0, label="С удалением БЛ")
   actions.entryconfigure(1, label="Поиск пиков")
 #Удаление графика  
@@ -204,9 +248,8 @@ remove_flag = False
 find_flag = False
 bild_flag = False
 new_flag = False
-average_flag = True
-amplitudes_list=[]
-frequencies_list=[]
+average_flag = False
+
 #Создание окна
 root = tk.Tk()
 root.title("Spectrum")
@@ -217,9 +260,7 @@ mainmenu = tk.Menu(root)
 root.config(menu=mainmenu)
 #Открытие файла с
 filemenu = tk.Menu(mainmenu, tearoff=0)
-filemenu.add_command(label="Открыть файл", command=open_file)
-filemenu.add_command(label="Открыть папку", command=open_folder)
-filemenu.add_command(label="Новый")
+filemenu.add_command(label="Открыть файлы", command=open_folder)
 filemenu.add_command(label="Сохранить...")
 filemenu.add_separator()
 filemenu.add_command(label="Выход", command=lambda: root.destroy())
@@ -230,7 +271,7 @@ helpmenu.add_command(label="О программе")
 #Действия над файлом
 actions = tk.Menu(mainmenu, tearoff=0)
 actions.add_command(label="Без удаления БЛ", command = actions1)
-actions.add_command(label="Поиск среднего", command = actions2)
+actions.add_command(label="Без среднего значения", command = actions2)
 actions.add_command(label="Без поиска пиков", command = actions3)
 
 

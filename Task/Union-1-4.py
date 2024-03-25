@@ -159,7 +159,7 @@ def build(frequencies_list, amplitudes_list, lam, p):
 
 # открытие файла 
 def open_folder():
-
+    time = perf_counter()
     root = tk.Tk()
     root.withdraw()
     folderpath = filedialog.askopenfilenames(title="Выберите файлы",
@@ -180,6 +180,8 @@ def open_folder():
               messagebox.showerror("Ошибка", f"11Произошла ошибка: {e}")
     else:
           messagebox.showwarning("Предупреждение", "Папка не выбрана.")
+
+    print(perf_counter() - time)
     
 
 # выбор действия
