@@ -28,7 +28,6 @@ def baseline_als(amplitudes, lam, p, niter=10):
     z = spsolve(Z, w*amplitudes) 
     w = p * (amplitudes > z) + (1-p) * (amplitudes < z) 
   return z 
-
   #Функция удаления БЛ
 def  delet_BaseLime(amplitudes_list): 
   lam = entry1.get() 
@@ -80,23 +79,44 @@ def averages_spectrum(averaged):
   averaged2.append(averaged)
   return averaged2
 
+def selection(frequencies_list, amplitudes_list):
+  frequencies_list2 = []
+  amplitudes_list2 = []
+  for frequencies, amplitudes in zip(frequencies_list, amplitudes_list):
+    mask = (frequencies >= min_freq) & (frequencies <= max_freq)
+    if np.any(mask):
+      frequencies_list2.append(frequencies[mask])
+      amplitudes_list2.append(amplitudes[mask])
+  return frequencies_list2, amplitudes_list2
 
+
+
+#Нормализация
 def normal(list):
   list = np.array(list)
   max = np.max(list)
   for i in range(len(list)):
       list[i] /= max
   return (list)
-   
+def normalized(list):
+  for a in range(len(list)):
+    amplitudes_list[a] = normal(list[a])
+  return amplitudes_list
 
-#Запоминание переменных lam и p 
+
+
+#Строительство по нажатию
 def get_input():
   global remove_flag, average_flag, amplitudes_list, frequencies_list
   timer = perf_counter()
   amplitudes_LIST = amplitudes_list
   frequencies_LIST = frequencies_list
+  if selection_flag:
+     frequencies_LIST, amplitudes_LIST = selection(frequencies_LIST, amplitudes_LIST)
   if remove_flag:
        amplitudes_LIST = delet_BaseLime(amplitudes_LIST)
+  if normalize_flag:
+       amplitudes_LIST = normalized(amplitudes_LIST)
   if average_flag:
        amplitudes_LIST = averages_spectrum(amplitudes_LIST)
        frequencies_LIST = averages_spectrum(frequencies_list)
@@ -112,63 +132,11 @@ def selection_color():
     b = np.random.random()
     return (0.5, g, b)
 
-#Создание графика
-'''
-def build(frequencies_list, amplitudes_list, lam, p):
-    global remove_flag, find_flag, frame, root
-    frame = tk.Frame(root) 
-    frame.pack() 
-    fig = Figure(figsize=(20, 6)) 
-    ax = fig.add_subplot()
-    ave_spectrums = []
-    for frequencies, amplitudes in zip(frequencies_list, amplitudes_list):
-        if remove_flag:
-          if not average_flag:
-            for amplitudes in amplitudes_list:
-              baseline = baseline_als(amplitudes, lam, p)  
-              cleaned_spectrum = amplitudes - baseline 
-              ax.plot(frequencies, cleaned_spectrum, color = selection_color(), alpha=0.8)
-          else:
-              for amplitudes in amplitudes_list:
-                baseline = baseline_als(amplitudes, lam, p)  
-                cleaned_spectrum = amplitudes - baseline
-                ave_spectrums.append(cleaned_spectrum) 
-              ave_spectrum = average_spectrum(ave_spectrums)
-              ax.plot(frequencies, ave_spectrum, color=selection_color())
-        else:
-            if average_flag:
-              for amplitudes in amplitudes_list:
-                ave_spectrums.append(amplitudes)
-              ave_spectrum = average_spectrum(ave_spectrums)
-              ax.plot(frequencies, ave_spectrum, color=selection_color())
-            else:
-               ax.plot(frequencies, amplitudes, color = selection_color(), alpha=0.8)
-        if find_flag:
-          peaks, _ = find_peaks(ave_spectrum, width=10, prominence=10)
-          ax.plot(frequencies[peaks], ave_spectrum[peaks], 'ro')
-          for i in range(len(peaks)):
-            ax.text(frequencies[peaks[i]], ave_spectrum[peaks[i]], f'({frequencies[peaks[i]]:.2f},\n {ave_spectrum[peaks[i]]:.2f})', fontsize=8)    
-    
-    ax.set_xlabel('Рамановский сдвиг, см^-1') 
-    ax.set_ylabel('Интенсивность') 
-    ax.legend() 
-    canvas = FigureCanvasTkAgg(fig, master=frame) 
-    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1) 
-    canvas.draw() 
-    toolbar = NavigationToolbar2Tk(canvas, frame) 
-    toolbar.update()
-    global new_flag
-    new_flag = True
-'''
-
 # открытие файла 
-
 def open_folder():
     global frequencies_list, amplitudes_list
     frequencies_list = []
     amplitudes_list = []
-    frequencies_list2 = []
-    amplitudes_list2 = []
     root = tk.Tk()
     root.withdraw()
     folderpath = filedialog.askopenfilenames(title="Выберите файлы", filetypes=(("ESP files", "*.esp"), ("Text files", "*.txt"), ("All files", "*.*")))
@@ -176,19 +144,8 @@ def open_folder():
         time = perf_counter()
         for path in folderpath:
             data = np.genfromtxt(path, skip_header=1)
-            frequencies_list2.append(data[:, 0])
-            amplitudes_list2.append(data[:, 1])
-
-        for frequencies, amplitudes in zip(frequencies_list2, amplitudes_list2):
-            mask = (frequencies >= 0) & (frequencies <= 100000000)
-            if np.any(mask):
-                frequencies_list.append(frequencies[mask])
-                amplitudes_list.append(amplitudes[mask])
-
-
-        #for a in range(len(amplitudes_list)):
-            #amplitudes_list[a] = normal(amplitudes_list[a])
-
+            frequencies_list.append(data[:, 0])
+            amplitudes_list.append(data[:, 1])
         bilding(frequencies_list, amplitudes_list)
     else:
         messagebox.showwarning("Предупреждение", "Файлы не выбраны.")
@@ -249,6 +206,8 @@ find_flag = False
 bild_flag = False
 new_flag = False
 average_flag = False
+selection_flag = True
+normalize_flag = True
 
 #Создание окна
 root = tk.Tk()
@@ -284,11 +243,21 @@ entry1 = tk.Entry(root)
 entry1.insert(0, "lam = 1000")
 entry1.bind("<FocusIn>", on_entry_click)
 entry1.pack()
-#Поле ввода 1
+#Поле ввода 2
 entry2 = tk.Entry(root)
 entry2.insert(0, "p = 0.001")
 entry2.bind("<FocusIn>", on_entry_click)
 entry2.pack()
+#Поле ввода 3
+entry3 = tk.Entry(root)
+entry3.insert(0, "min_freq ")
+entry3.bind("<FocusIn>", on_entry_click)
+entry3.pack()
+#Поле ввода 4
+entry4 = tk.Entry(root)
+entry4.insert(0, "max_freq: ")
+entry4.bind("<FocusIn>", on_entry_click)
+entry4.pack()
 #Поле инструментов
 mainmenu.add_cascade(label="Файл", menu=filemenu)
 mainmenu.add_cascade(label="Справка", menu=helpmenu)
