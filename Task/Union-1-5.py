@@ -56,7 +56,6 @@ def bilding(frequencies_list, amplitudes_list ):
     frame.pack() 
     fig = Figure(figsize=(20, 6)) 
     ax = fig.add_subplot()
-    print(len(amplitudes_list))
     print(len(frequencies_list))
     for i in range(len(amplitudes_list)):
       ax.plot(frequencies_list[i], amplitudes_list[i], color = selection_color(), alpha=0.5)
@@ -79,15 +78,25 @@ def averages_spectrum(averaged):
   averaged2.append(averaged)
   return averaged2
 
-def selection(frequencies_list, amplitudes_list):
-  frequencies_list2 = []
-  amplitudes_list2 = []
-  for frequencies, amplitudes in zip(frequencies_list, amplitudes_list):
-    mask = (frequencies >= min_freq) & (frequencies <= max_freq)
+def selection(freq_list, ampl_list):
+  min_freq = entry3.get() 
+  max_freq = entry4.get()
+  if min_freq == "min_freq":
+    min_freq = 0
+  else:
+    min_freq = float(entry3.get())
+  if max_freq == "max_freq":
+    max_freq = 10000
+  else:
+    max_freq = float(entry4.get())
+  freq_list2 = []
+  ampl_list2 = []
+  for freq, ampl in zip(freq_list, ampl_list):
+    mask = (freq >= min_freq) & (freq <= max_freq)
     if np.any(mask):
-      frequencies_list2.append(frequencies[mask])
-      amplitudes_list2.append(amplitudes[mask])
-  return frequencies_list2, amplitudes_list2
+      freq_list2.append(freq[mask])
+      ampl_list2.append(ampl[mask])
+  return freq_list2, ampl_list2
 
 
 
@@ -99,9 +108,10 @@ def normal(list):
       list[i] /= max
   return (list)
 def normalized(list):
+  amplit_LIST = [0] * len(list)
   for a in range(len(list)):
-    amplitudes_list[a] = normal(list[a])
-  return amplitudes_list
+    amplit_LIST[a] = normal(list[a])
+  return amplit_LIST
 
 
 
@@ -109,21 +119,20 @@ def normalized(list):
 def get_input():
   global remove_flag, average_flag, amplitudes_list, frequencies_list
   timer = perf_counter()
-  amplitudes_LIST = amplitudes_list
-  frequencies_LIST = frequencies_list
+  amplit_LIST = amplitudes_list
+  freque_LIST = frequencies_list
   if selection_flag:
-     frequencies_LIST, amplitudes_LIST = selection(frequencies_LIST, amplitudes_LIST)
+     freque_LIST, amplit_LIST = selection(freque_LIST, amplit_LIST)
   if remove_flag:
-       amplitudes_LIST = delet_BaseLime(amplitudes_LIST)
+       amplit_LIST = delet_BaseLime(amplit_LIST)
   if normalize_flag:
-       amplitudes_LIST = normalized(amplitudes_LIST)
+       amplit_LIST = normalized(amplit_LIST)
   if average_flag:
-       amplitudes_LIST = averages_spectrum(amplitudes_LIST)
-       frequencies_LIST = averages_spectrum(frequencies_list)
+       amplit_LIST = averages_spectrum(amplit_LIST)
+       freque_LIST = averages_spectrum(freque_LIST)
 
-  bilding(frequencies_LIST, amplitudes_LIST)
+  bilding(freque_LIST, amplit_LIST)
   print(perf_counter() - timer)
-  #build(frequencies_list, amplitudes_list, lam, p)
 
 #Функция выбора цвета
 def selection_color():
@@ -165,28 +174,36 @@ def actions2():
   global find_flag, frame,average_flag
   average_flag = not average_flag
   if average_flag:
-    actions.entryconfigure(1, label="Со средними значениями")
+    actions.entryconfigure(2, label="Со средними значениями")
   else:
-    actions.entryconfigure(1, label="Без среднего значения")
+    actions.entryconfigure(2, label="Без среднего значения")
     find_flag = False
-    actions.entryconfigure(2, label="Без поиска пиков")    
+    actions.entryconfigure(3, label="Без поиска пиков")    
 
 
 def actions3():  
   global find_flag, frame, average_flag
   find_flag = not find_flag    
   if find_flag:
-    actions.entryconfigure(2, label="С поиском пиков")
-    actions.entryconfigure(1, label="Со средними значениями")
+    actions.entryconfigure(3, label="С поиском пиков")
+    actions.entryconfigure(2, label="Со средними значениями")
     average_flag = True
   else:
-    actions.entryconfigure(2, label="Без поиска пиков")
+    actions.entryconfigure(3, label="Без поиска пиков")
+
+def actions4():
+   global normalize_flag
+   normalize_flag = not normalize_flag
+   if normalize_flag:
+     actions.entryconfigure(1, label="Нормализация")
+   else:
+     actions.entryconfigure(1, label="Без нормализации")
 
 
 #пропадает надпись на поле ввода
 def on_entry_click(event):
   entry = event.widget
-  if entry.get() in ["lam = 1000", "p = 0.001"]: 
+  if entry.get() in ["lam = 1000", "p = 0.001", "min_freq", "max_freq"]: 
     entry.delete(0, tk.END)
 #Удаление данных
 def clear_data():
@@ -197,9 +214,7 @@ def clear_data():
   frame.destroy()
   actions.entryconfigure(0, label="С удалением БЛ")
   actions.entryconfigure(1, label="Поиск пиков")
-#Удаление графика  
-def clear_plotting():
-  frame.destroy()
+
 
 remove_flag = False
 find_flag = False
@@ -207,7 +222,7 @@ bild_flag = False
 new_flag = False
 average_flag = False
 selection_flag = True
-normalize_flag = True
+normalize_flag = False
 
 #Создание окна
 root = tk.Tk()
@@ -230,6 +245,7 @@ helpmenu.add_command(label="О программе")
 #Действия над файлом
 actions = tk.Menu(mainmenu, tearoff=0)
 actions.add_command(label="Без удаления БЛ", command = actions1)
+actions.add_command(label="Без нормировки", command = actions4)
 actions.add_command(label="Без среднего значения", command = actions2)
 actions.add_command(label="Без поиска пиков", command = actions3)
 
@@ -237,7 +253,6 @@ actions.add_command(label="Без поиска пиков", command = actions3)
 building = tk.Menu(mainmenu, tearoff=0)
 building.add_command(label="Построить график", command = get_input)
 building.add_command(label="Очистить данные о файле", command = clear_data)
-building.add_command(label="Убрать график", command = clear_plotting)
 #Поле ввода 1
 entry1 = tk.Entry(root)
 entry1.insert(0, "lam = 1000")
@@ -250,12 +265,12 @@ entry2.bind("<FocusIn>", on_entry_click)
 entry2.pack()
 #Поле ввода 3
 entry3 = tk.Entry(root)
-entry3.insert(0, "min_freq ")
+entry3.insert(0, "min_freq")
 entry3.bind("<FocusIn>", on_entry_click)
 entry3.pack()
 #Поле ввода 4
 entry4 = tk.Entry(root)
-entry4.insert(0, "max_freq: ")
+entry4.insert(0, "max_freq")
 entry4.bind("<FocusIn>", on_entry_click)
 entry4.pack()
 #Поле инструментов
