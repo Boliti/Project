@@ -59,6 +59,12 @@ def bilding(frequencies_list, amplitudes_list ):
     print(len(frequencies_list))
     for i in range(len(amplitudes_list)):
       ax.plot(frequencies_list[i], amplitudes_list[i], color = selection_color(), alpha=0.5)
+      if find_flag:
+        peaks, _ = find_peaks(amplitudes_list[i], width=10, prominence=10)
+        ax.plot(frequencies_list[i][peaks], amplitudes_list[i][peaks], 'ro')
+        #for i in range(len(peaks)):
+        #    ax.text(frequencies[peaks[i]], ave_spectrum[peaks[i]], f'({frequencies[peaks[i]]:.2f},\n {ave_spectrum[peaks[i]]:.2f})', fontsize=8)    
+
     
     ax.set_xlabel('Рамановский сдвиг, см^-1') 
     ax.set_ylabel('Интенсивность') 
@@ -78,6 +84,7 @@ def averages_spectrum(averaged):
   averaged2.append(averaged)
   return averaged2
 
+#Функция выбора частотного диапазона
 def selection(freq_list, ampl_list):
   min_freq = entry3.get() 
   max_freq = entry4.get()
@@ -132,6 +139,7 @@ def get_input():
        freque_LIST = averages_spectrum(freque_LIST)
 
   bilding(freque_LIST, amplit_LIST)
+
   print(perf_counter() - timer)
 
 #Функция выбора цвета
@@ -279,5 +287,13 @@ mainmenu.add_cascade(label="Справка", menu=helpmenu)
 mainmenu.add_cascade(label="Действия", menu=actions)
 mainmenu.add_cascade(label="Действия над файлом", menu=building)
 
+
+# Создаем фрейм для размещения downbar
+bottom_frame = tk.Frame(root, height=30, bg='lightgray')
+bottom_frame.pack(side='bottom', fill='x')
+# Отображаем версию tkinter на полосе
+Program_version = 0.3472
+version_label = tk.Label(bottom_frame, text=f"Program version: {Program_version}", bg='lightgray')
+version_label.pack(side='right', padx=10)
 
 root.mainloop()
