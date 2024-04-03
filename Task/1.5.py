@@ -7,6 +7,7 @@ from tkinter import filedialog
 from tkinter import messagebox
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import spsolve
+from scipy.signal import savgol_filter
 from scipy import sparse
 from tkinter import *
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
@@ -32,12 +33,12 @@ def baseline_als(amplitudes, lam, p, niter=10):
 
 
 def delet_BaseLime(amplitudes_list):
-    lam = entry1.get()
+    lam = entry3.get()
+    p = entry4.get()
     if lam == "lam = 1000":
         lam = 1000
     else:
         lam = float(entry1.get())
-    p = entry2.get()
     if p == "p = 0.001":
         p = 0.001
     else:
@@ -48,7 +49,6 @@ def delet_BaseLime(amplitudes_list):
         cleaned_spectrum = amplitudes - baseline
         amplitudesBL_list.append(cleaned_spectrum)
     return amplitudesBL_list
-
 
 # Строительтво графика.
 def bilding(frequencies_list, amplitudes_list):
@@ -91,8 +91,8 @@ def averages_spectrum(averaged):
 
 
 def selection(freq_list, ampl_list):
-    min_freq = entry3.get()
-    max_freq = entry4.get()
+    min_freq = entry1.get()
+    max_freq = entry2.get()
     if min_freq == "min_freq":
         min_freq = 0
     else:
@@ -110,22 +110,51 @@ def selection(freq_list, ampl_list):
             ampl_list2.append(ampl[mask])
     return freq_list2, ampl_list2
 
+# Сглаживание сигнала
+# Сглаживания сигнала методом savgol_filter
+def savgol_def(spectrum_list):
+    spectrum_list2 = []
+    """ Добавить поля ввода
+    if window_length == "window_length":
+        window_length = 25
+    else:
+        window_length = float(entry3.get())
+    if polyorder == "polyorder":
+        polyorder = 2
+    else:
+        polyorder = float(entry3.get())
+        """
+    window_length = 25
+    polyorder = 2
+    
+    for i in range(len(spectrum_list)):
+        spectrum_list[i] = savgol_filter(spectrum_list[i], window_length, polyorder)
+        spectrum_list2.append(spectrum_list[i])
+    return spectrum_list2
 
 # Нормализация
+# Нормализация спектра методом SNV
+def normalize_spectrum_snv(spectrum_list):
+    normalized_spectrum = []
+    for i in range(len(spectrum_list)):
+        mean_spectrum = np.mean(spectrum_list[i])
+        std_spectrum = np.std(spectrum_list[i])
+        normalized = (spectrum_list[i] - mean_spectrum) / std_spectrum
+        normalized_spectrum.append(normalized)
+    return normalized_spectrum
+
+# Нормализацию значений списка относительно их максимального значения
 def normal(list):
     list = np.array(list)
     max = np.max(list)
     for i in range(len(list)):
         list[i] /= max
     return (list)
-
-
 def normalized(list):
     amplit_LIST = [0] * len(list)
     for a in range(len(list)):
         amplit_LIST[a] = normal(list[a])
     return amplit_LIST
-
 
 # Строительство по нажатию
 def get_input():
@@ -135,10 +164,14 @@ def get_input():
     freque_LIST = frequencies_list
     if selection_flag:
         freque_LIST, amplit_LIST = selection(freque_LIST, amplit_LIST)
+    if savgol_filter_flag:
+        amplit_LIST = savgol_def(amplit_LIST)
     if remove_flag:
         amplit_LIST = delet_BaseLime(amplit_LIST)
     if normalize_flag:
         amplit_LIST = normalized(amplit_LIST)
+    if normalize_snv_flag:
+        amplit_LIST = normalize_spectrum_snv(amplit_LIST)
     if average_flag:
         amplit_LIST = averages_spectrum(amplit_LIST)
         freque_LIST = averages_spectrum(freque_LIST)
@@ -235,7 +268,11 @@ def clear_data():
     actions.entryconfigure(0, label="С удалением БЛ")
     actions.entryconfigure(1, label="Поиск пиков")
 
-
+# Объявление основных флагов
+# Нет кнопки
+normalize_snv_flag = True
+# Нет кнопки
+savgol_filter_flag = True
 remove_flag = False
 find_flag = False
 bild_flag = False
@@ -288,46 +325,46 @@ building.add_command(label="Очистить данные о файле", comman
 # Создаем метку (Label) с текстом
 label = tk.Label(root, text="lam:", font=("Arial", 10))
 label.pack()  # Размещаем метку на окне
-label.place(x=5, y=55)
+label.place(x=5, y=135)
 
 # Создаем метку (Label) с текстом
 label = tk.Label(root, text="p:", font=("Arial", 10))
 label.pack()  # Размещаем метку на окне
-label.place(x=5, y=75)
+label.place(x=5, y=155)
 
 # Создаем метку (Label) с текстом
 label = tk.Label(root, text="minf", font=("Arial", 10))
 label.pack()  # Размещаем метку на окне
-label.place(x=5, y=95)
+label.place(x=5, y=55)
 
 # Создаем метку (Label) с текстом
 label = tk.Label(root, text="maxf", font=("Arial", 10))
 label.pack()  # Размещаем метку на окне
-label.place(x=5, y=115)
+label.place(x=5, y=75)
 
-entry1 = tk.Entry(root)
-entry1.insert(0, "lam = 1000")
-entry1.bind("<FocusIn>", on_entry_click)
-entry1.pack()
-entry1.place(x=40, y=55)
-# Поле ввода 2
-entry2 = tk.Entry(root)
-entry2.insert(0, "p = 0.001")
-entry2.bind("<FocusIn>", on_entry_click)
-entry2.pack()
-entry2.place(x=40, y=75)
-# Поле ввода 3
 entry3 = tk.Entry(root)
-entry3.insert(0, "min_freq")
+entry3.insert(0, "lam = 1000")
 entry3.bind("<FocusIn>", on_entry_click)
 entry3.pack()
 entry3.place(x=40, y=95)
-# Поле ввода 4
+# Поле ввода 2
 entry4 = tk.Entry(root)
-entry4.insert(0, "max_freq")
+entry4.insert(0, "p = 0.001")
 entry4.bind("<FocusIn>", on_entry_click)
 entry4.pack()
 entry4.place(x=40, y=115)
+# Поле ввода 3
+entry1 = tk.Entry(root)
+entry1.insert(0, "min_freq")
+entry1.bind("<FocusIn>", on_entry_click)
+entry1.pack()
+entry1.place(x=40, y=55)
+# Поле ввода 4
+entry2 = tk.Entry(root)
+entry2.insert(0, "max_freq")
+entry2.bind("<FocusIn>", on_entry_click)
+entry2.pack()
+entry2.place(x=40, y=75)
 # Поле инструментов
 mainmenu.add_cascade(label="Файл", menu=filemenu)
 mainmenu.add_cascade(label="Справка", menu=helpmenu)
@@ -340,21 +377,24 @@ label = tk.Label(root, text="Функции и параметры", font=("Arial
 label.pack()  # Размещаем метку на окне
 label.place(x=5, y=5)
 
+label = tk.Label(root, text="Полоса частот", font=("Arial", 10))
+label.pack()  # Размещаем метку на окне
+label.place(x=5, y=25)
 
 checkbox_var = tk.IntVar()
 checkbox = tk.Checkbutton(root, text="baseline", font=("Arial", 10), variable=checkbox_var, command=actions1)
 checkbox.pack()
-checkbox.place(x=5, y=25)
+checkbox.place(x=5, y=115)
 
 checkbox_var2 = tk.IntVar()
 checkbox2 = tk.Checkbutton(root, text="поиск пиков", variable=checkbox_var2, command=actions3)
 checkbox2.pack()
-checkbox2.place(x=5, y=140)
+checkbox2.place(x=5, y=190)
 
 checkbox_var3 = tk.IntVar()
 checkbox3 = tk.Checkbutton(root, text="нормировка", variable=checkbox_var3, command=actions4)
 checkbox3.pack()
-checkbox3.place(x=5, y=160)
+checkbox3.place(x=5, y=210)
 
 # Создаем фрейм для размещения downbar
 bottom_frame = tk.Frame(root, height=30, bg='lightgray')
