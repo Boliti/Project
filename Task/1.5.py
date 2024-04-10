@@ -29,9 +29,7 @@ def baseline_als(amplitudes, lam, p, niter=10):
         z = spsolve(Z, w * amplitudes)
         w = p * (amplitudes > z) + (1 - p) * (amplitudes < z)
     return z
-    # Функция удаления БЛ
-
-
+# Функция удаления БЛ
 def delet_BaseLime(amplitudes_list):
     lam = entry3.get()
     p = entry4.get()
@@ -50,7 +48,7 @@ def delet_BaseLime(amplitudes_list):
         amplitudesBL_list.append(cleaned_spectrum)
     return amplitudesBL_list
 
-# Строительтво графика.
+# Строительтво графика на экране.
 def bilding(frequencies_list, amplitudes_list):
     global new_flag, frame, root
     if new_flag:
@@ -61,8 +59,6 @@ def bilding(frequencies_list, amplitudes_list):
     # frame.pack_propagate(False)
     fig = Figure(figsize=(11.5, 7.9))
     ax = fig.add_subplot()
-    print(len(amplitudes_list))
-    print(len(frequencies_list))
     for i in range(len(amplitudes_list)):
         ax.plot(frequencies_list[i], amplitudes_list[i], alpha=0.5)
         if find_flag:
@@ -89,7 +85,7 @@ def averages_spectrum(averaged):
     averaged2.append(averaged)
     return averaged2
 
-
+# Функция выбора полосы частот
 def selection(freq_list, ampl_list):
     min_freq = entry1.get()
     max_freq = entry2.get()
@@ -150,10 +146,10 @@ def normal(list):
     for i in range(len(list)):
         list[i] /= max
     return (list)
-def normalized(list):
-    amplit_LIST = [0] * len(list)
-    for a in range(len(list)):
-        amplit_LIST[a] = normal(list[a])
+def normalized(spectrum_list):
+    amplit_LIST = [0] * len(spectrum_list)
+    for a in range(len(spectrum_list)):
+        amplit_LIST[a] = normal(spectrum_list[a])
     return amplit_LIST
 
 # Строительство по нажатию

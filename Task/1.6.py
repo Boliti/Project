@@ -21,64 +21,168 @@ from scipy.signal import find_peaks
 # Функция нахождения БЛ
 def baseline_als(amplitudes, lam, p, niter=10):
     L = len(amplitudes)
-
+    D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(L, L - 2))
+    w = np.ones(L)
+    for i in range(niter):
+        W = sparse.spdiags(w, 0, L, L)
+        Z = W + float(lam) * D.dot(D.transpose())
+        z = spsolve(Z, w * amplitudes)
+        w = p * (amplitudes > z) + (1 - p) * (amplitudes < z)
+    return z
 # Функция удаления БЛ
 def delet_BaseLime(amplitudes_list):
-    lam = entry3.get()
-
+    lam = float(entry3.get())
+    p = float(entry4.get())
+    amplitudesBL_list = []
+    for amplitudes in amplitudes_list:
+        baseline = baseline_als(amplitudes, lam, p)
+        cleaned_spectrum = amplitudes - baseline
+        amplitudesBL_list.append(cleaned_spectrum)
+    return amplitudesBL_list
 
 # Строительтво графика на экране.
 def bilding(frequencies_list, amplitudes_list):
     global new_flag, frame, root
+    if new_flag:
+        frame.destroy()
+    frame = tk.Frame(root)
+    frame.pack()
 
+    # frame.pack_propagate(False)
+    fig = Figure(figsize=(11.5, 7.9))
+    ax = fig.add_subplot()
+    for i in range(len(amplitudes_list)):
+        ax.plot(frequencies_list[i], amplitudes_list[i], alpha=0.5)
+        if find_flag:
+            peaks, _ = find_peaks(amplitudes_list[i], width=10, prominence=10)
+            ax.plot(frequencies_list[i][peaks], amplitudes_list[i][peaks], 'ro')
+            for j in range(len(peaks)):
+                ax.text(frequencies_list[i][peaks[j]], amplitudes_list[i][peaks[j]], f'({frequencies_list[i][peaks[j]]:.2f},\n {amplitudes_list[i][peaks[j]]:.2f})', fontsize=8)    
+
+
+    ax.set_xlabel('Рамановский сдвиг, см^-1')
+    ax.set_ylabel('Интенсивность')
+    canvas = FigureCanvasTkAgg(fig, master=frame)
+    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+    canvas.draw()
+
+    toolbar = NavigationToolbar2Tk(canvas, frame)
+    toolbar.update()
+    new_flag = True
 
 # Функция средней спектрограммы
 def averages_spectrum(averaged):
     averaged2 = []
-
+    averaged = np.mean(np.array(averaged), axis=0)
+    averaged2.append(averaged)
+    return averaged2
 
 # Функция выбора полосы частот
 def selection(freq_list, ampl_list):
     min_freq = entry1.get()
-
+    max_freq = entry2.get()
+    if min_freq == "min_freq":
+        min_freq = 0
+    else:
+        min_freq = float(entry1.get())
+    if max_freq == "max_freq":
+        max_freq = 10000
+    else:
+        max_freq = float(entry2.get())
+    freq_list2 = []
+    ampl_list2 = []
+    for freq, ampl in zip(freq_list, ampl_list):
+        mask = (freq >= min_freq) & (freq <= max_freq)
+        if np.any(mask):
+            freq_list2.append(freq[mask])
+            ampl_list2.append(ampl[mask])
+    return freq_list2, ampl_list2
 
 # Сглаживание сигнала
 # Сглаживания сигнала методом savgol_filter
 def savgol_def(spectrum_list):
     spectrum_list2 = []
-
+    window_length = int(entry5.get())
+    polyorder = int(entry6.get())
+    
+    for i in range(len(spectrum_list)):
+        spectrum_list[i] = savgol_filter(spectrum_list[i], window_length, polyorder)
+        spectrum_list2.append(spectrum_list[i])
+    return spectrum_list2
 
 # Нормализация
 # Нормализация спектра методом SNV
 def normalize_spectrum_snv(spectrum_list):
     normalized_spectrum = []
-
+    for i in range(len(spectrum_list)):
+        mean_spectrum = np.mean(spectrum_list[i])
+        std_spectrum = np.std(spectrum_list[i])
+        normalized = (spectrum_list[i] - mean_spectrum) / std_spectrum
+        normalized_spectrum.append(normalized)
+    return normalized_spectrum
 
 # Нормализацию значений списка относительно их максимального значения
 def normal(list):
     list = np.array(list)
-
+    max = np.max(list)
+    for i in range(len(list)):
+        list[i] /= max
+    return (list)
 def normalized(spectrum_list):
     amplit_LIST = [0] * len(spectrum_list)
-
+    for a in range(len(spectrum_list)):
+        amplit_LIST[a] = normal(spectrum_list[a])
+    return amplit_LIST
 
 # Строительство по нажатию
 def get_input():
     global remove_flag, average_flag, amplitudes_list, frequencies_list
     timer = perf_counter()
+    amplit_LIST = amplitudes_list
+    freque_LIST = frequencies_list
+    if selection_flag:
+        freque_LIST, amplit_LIST = selection(freque_LIST, amplit_LIST)
+    if savgol_filter_flag:
+        amplit_LIST = savgol_def(amplit_LIST)
+    if remove_flag:
+        amplit_LIST = delet_BaseLime(amplit_LIST)
+    if normalize_flag:
+        amplit_LIST = normalized(amplit_LIST)
+    if normalize_snv_flag:
+        amplit_LIST = normalize_spectrum_snv(amplit_LIST)
+    if average_flag:
+        amplit_LIST = averages_spectrum(amplit_LIST)
+        freque_LIST = averages_spectrum(freque_LIST)
 
+    bilding(freque_LIST, amplit_LIST)
     print(perf_counter() - timer)
+
 
 
 
 # открытие файла
 def open_folder():
-  time = perf_counter()
+    global frequencies_list, amplitudes_list
+    frequencies_list = []
+    amplitudes_list = []
+    root = tk.Tk()
+    root.withdraw()
+    folderpath = filedialog.askopenfilenames(title="Выберите файлы", filetypes=(
+    ("ESP files", "*.esp"), ("Text files", "*.txt"), ("All files", "*.*")))
+    if folderpath:
+        time = perf_counter()
+        for path in folderpath:
+            data = np.genfromtxt(path, skip_header=1)
+            frequencies_list.append(data[:, 0])
+            amplitudes_list.append(data[:, 1])
+        bilding(frequencies_list, amplitudes_list)
+    else:
+        messagebox.showwarning("Предупреждение", "Файлы не выбраны.")
 
-  print(perf_counter() - time)
+    print(perf_counter() - time)
 
 
-# выбор действия
+# выбор действия# выбор действия
 def actions1():
     global remove_flag, frame
     remove_flag = not remove_flag
@@ -91,32 +195,19 @@ def actions1():
 def actions2():
     global find_flag, frame, average_flag
     average_flag = not average_flag
-    if average_flag:
-        actions.entryconfigure(2, label="Со средними значениями")
-    else:
-        actions.entryconfigure(2, label="Без среднего значения")
-        find_flag = False
-        actions.entryconfigure(3, label="Без поиска пиков")
+
 
 
 def actions3():
     global find_flag, frame, average_flag
     find_flag = not find_flag
-    if find_flag:
-        actions.entryconfigure(3, label="С поиском пиков")
-        actions.entryconfigure(2, label="Со средними значениями")
-        average_flag = True
-    else:
-        actions.entryconfigure(3, label="Без поиска пиков")
+
 
 
 def actions4():
     global normalize_flag
     normalize_flag = not normalize_flag
-    if normalize_flag:
-        actions.entryconfigure(1, label="Нормализация")
-    else:
-        actions.entryconfigure(1, label="Без нормализации")
+
 
 def actions5():
     global normalize_snv_flag
@@ -319,7 +410,7 @@ checkbox6.pack()
 checkbox6.place(x=5, y=260)
 
 checkbox_var7 = tk.IntVar()
-checkbox7 = tk.Checkbutton(root, text="Нахожение среднего", variable=checkbox_var7, command=actions3)
+checkbox7 = tk.Checkbutton(root, text="Нахожение среднего", variable=checkbox_var7, command=actions2)
 checkbox7.pack()
 checkbox7.place(x=5, y=322)
 # Создаем фрейм для размещения downbar
