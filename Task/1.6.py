@@ -186,10 +186,6 @@ def open_folder():
 def actions1():
     global remove_flag, frame
     remove_flag = not remove_flag
-    if remove_flag:
-        actions.entryconfigure(0, label="С удалением БЛ")
-    else:
-        actions.entryconfigure(0, label="Без удаления БЛ")
 
 
 def actions2():
@@ -220,7 +216,7 @@ def actions6():
 # пропадает надпись на поле ввода
 def on_entry_click(event):
     entry = event.widget
-    if entry.get() in ["lam = 1000", "p = 0.001", "min_freq", "max_freq"]:
+    if entry.get() in ["min_freq", "max_freq"]:
         entry.delete(0, tk.END)
 
 
@@ -229,15 +225,10 @@ def clear_data():
     global amplitudes_list, frequencies_list, remove_flag, find_flag
     amplitudes_list = []
     frequencies_list = []
-    find_flag = False
     frame.destroy()
-    actions.entryconfigure(0, label="С удалением БЛ")
-    actions.entryconfigure(1, label="Поиск пиков")
 
 # Объявление основных флагов
-# Нет кнопки
 normalize_snv_flag = False
-# Нет кнопки
 savgol_filter_flag = False
 remove_flag = False
 find_flag = False
@@ -276,12 +267,6 @@ filemenu.add_command(label="Выход", command=lambda: root.destroy())
 helpmenu = tk.Menu(mainmenu, tearoff=0)
 helpmenu.add_command(label="Помощь", command=show_message)
 helpmenu.add_command(label="О программе")
-# Действия над файлом
-actions = tk.Menu(mainmenu, tearoff=0)
-actions.add_command(label="Без удаления БЛ", command=actions1)
-actions.add_command(label="Без нормировки", command=actions4)
-actions.add_command(label="Без среднего значения", command=actions2)
-actions.add_command(label="Без поиска пиков", command=actions3)
 
 building = tk.Menu(mainmenu, tearoff=0)
 building.add_command(label="Построить график", command=get_input)
@@ -359,7 +344,7 @@ entry6.place(x=40, y=305)
 # Поле инструментов
 mainmenu.add_cascade(label="Файл", menu=filemenu)
 mainmenu.add_cascade(label="Справка", menu=helpmenu)
-mainmenu.add_cascade(label="Действия", menu=actions)
+
 mainmenu.add_cascade(label="Действия над файлом", menu=building)
 mainmenu.add_command(label="run", command=get_input)
 
@@ -395,7 +380,7 @@ checkbox2.pack()
 checkbox2.place(x=5, y=340)
 
 checkbox_var4 = tk.IntVar()
-checkbox4 = tk.Checkbutton(root, text="Метод SNV", variable=checkbox_var4, command=actions5)
+checkbox4 = tk.Checkbutton(root, text="Норм. методом SNV", variable=checkbox_var4, command=actions5)
 checkbox4.pack()
 checkbox4.place(x=5, y=200)
 
@@ -405,7 +390,7 @@ checkbox3.pack()
 checkbox3.place(x=5, y=220)
 
 checkbox_var6 = tk.IntVar()
-checkbox6 = tk.Checkbutton(root, text="Савгольт фильтр", variable=checkbox_var6, command=actions6)
+checkbox6 = tk.Checkbutton(root, text="Фильт. Савицкого-Голая", variable=checkbox_var6, command=actions6)
 checkbox6.pack()
 checkbox6.place(x=5, y=260)
 
