@@ -110,6 +110,24 @@ def savgol_def(spectrum_list):
         spectrum_list2.append(spectrum_list[i])
     return spectrum_list2
 
+# Сглаживание сигнала методом средней скользящей
+def moving_average_smoothing(spectrum):
+    window_size = int(entry5.get())
+    if window_size % 2 == 0:
+        raise ValueError("Размер окна сглаживания должен быть нечетным числом")
+    if window_size < 1:
+        raise ValueError("Размер окна сглаживания должен быть больше нуля")
+    smoothed_spectrum = np.zeros_like(spectrum)
+    half_window = window_size // 2
+    for i in range(half_window, len(spectrum) - half_window):
+        window = spectrum[i - half_window:i + half_window + 1]
+        smoothed_spectrum[i] = np.mean(window)
+    # сглаживание краев спектра
+    smoothed_spectrum[:half_window] = np.mean(spectrum[:window_size])
+    smoothed_spectrum[-half_window:] = np.mean(spectrum[-window_size:])
+
+    return smoothed_spectrum
+
 # Нормализация
 # Нормализация спектра методом SNV
 def normalize_spectrum_snv(spectrum_list):
@@ -144,6 +162,9 @@ def get_input():
         freque_LIST, amplit_LIST = selection(freque_LIST, amplit_LIST)
     if savgol_filter_flag:
         amplit_LIST = savgol_def(amplit_LIST)
+    if moving_average_smoothing_flag:
+        for i in range(len(amplit_LIST)):
+            amplit_LIST[i] = moving_average_smoothing(amplit_LIST[i])
     if remove_flag:
         amplit_LIST = delet_BaseLime(amplit_LIST)
     if normalize_flag:
@@ -213,6 +234,10 @@ def actions6():
     global savgol_filter_flag
     savgol_filter_flag = not savgol_filter_flag
 
+def actions7():
+    global moving_average_smoothing_flag
+    moving_average_smoothing_flag = not moving_average_smoothing_flag
+
 # пропадает надпись на поле ввода
 def on_entry_click(event):
     entry = event.widget
@@ -237,6 +262,7 @@ new_flag = False
 average_flag = False
 selection_flag = True
 normalize_flag = False
+moving_average_smoothing_flag = False
 
 # Создание окна
 root = tk.Tk()
@@ -377,7 +403,7 @@ checkbox.place(x=5, y=115)
 checkbox_var2 = tk.IntVar()
 checkbox2 = tk.Checkbutton(root, text="Поиск пиков", variable=checkbox_var2, command=actions3)
 checkbox2.pack()
-checkbox2.place(x=5, y=340)
+checkbox2.place(x=5, y=360)
 
 checkbox_var4 = tk.IntVar()
 checkbox4 = tk.Checkbutton(root, text="Норм. методом SNV", variable=checkbox_var4, command=actions5)
@@ -394,10 +420,15 @@ checkbox6 = tk.Checkbutton(root, text="Фильт. Савицкого-Голая
 checkbox6.pack()
 checkbox6.place(x=5, y=260)
 
+checkbox_var8 = tk.IntVar()
+checkbox8 = tk.Checkbutton(root, text="Метод ср. скользящей", variable=checkbox_var8, command=actions7)
+checkbox8.pack()
+checkbox8.place(x=5, y=322)
+
 checkbox_var7 = tk.IntVar()
 checkbox7 = tk.Checkbutton(root, text="Нахожение среднего", variable=checkbox_var7, command=actions2)
 checkbox7.pack()
-checkbox7.place(x=5, y=322)
+checkbox7.place(x=5, y=342)
 # Создаем фрейм для размещения downbar
 bottom_frame = tk.Frame(root, height=30, bg='lightgray')
 bottom_frame.pack(side='bottom', fill='x')
