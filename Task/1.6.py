@@ -111,22 +111,25 @@ def savgol_def(spectrum_list):
     return spectrum_list2
 
 # Сглаживание сигнала методом средней скользящей
-def moving_average_smoothing(spectrum):
+def moving_average_smoothing(spectrum_list):
+    spectrum_list2 = []
     window_size = int(entry5.get())
     if window_size % 2 == 0:
         raise ValueError("Размер окна сглаживания должен быть нечетным числом")
     if window_size < 1:
         raise ValueError("Размер окна сглаживания должен быть больше нуля")
-    smoothed_spectrum = np.zeros_like(spectrum)
-    half_window = window_size // 2
-    for i in range(half_window, len(spectrum) - half_window):
-        window = spectrum[i - half_window:i + half_window + 1]
-        smoothed_spectrum[i] = np.mean(window)
-    # сглаживание краев спектра
-    smoothed_spectrum[:half_window] = np.mean(spectrum[:window_size])
-    smoothed_spectrum[-half_window:] = np.mean(spectrum[-window_size:])
+    for i in range(len(spectrum_list)):
+        smoothed_spectrum = np.zeros_like(spectrum_list[i])
+        half_window = window_size // 2
+        for j in range(half_window, len(spectrum_list[i]) - half_window):
+            window = spectrum_list[i][j - half_window:i + half_window + 1]
+            smoothed_spectrum[j] = np.mean(window)
+        # сглаживание краев спектра
+        smoothed_spectrum[:half_window] = np.mean(spectrum_list[i][:window_size])
+        smoothed_spectrum[-half_window:] = np.mean(spectrum_list[i][-window_size:])
+        spectrum_list2.append[smoothed_spectrum]
 
-    return smoothed_spectrum
+    return spectrum_list2
 
 # Нормализация
 # Нормализация спектра методом SNV
