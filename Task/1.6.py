@@ -40,35 +40,7 @@ def delet_BaseLime(amplitudes_list):
         amplitudesBL_list.append(cleaned_spectrum)
     return amplitudesBL_list
 
-# Строительтво графика на экране.
-def bilding(frequencies_list, amplitudes_list):
-    global new_flag, frame, root
-    if new_flag:
-        frame.destroy()
-    frame = tk.Frame(root)
-    frame.pack()
 
-    # frame.pack_propagate(False)
-    fig = Figure(figsize=(11.5, 7.9))
-    ax = fig.add_subplot()
-    for i in range(len(amplitudes_list)):
-        ax.plot(frequencies_list[i], amplitudes_list[i], alpha=0.5)
-        if find_flag:
-            peaks, _ = find_peaks(amplitudes_list[i], width=10, prominence=10)
-            ax.plot(frequencies_list[i][peaks], amplitudes_list[i][peaks], 'ro')
-            for j in range(len(peaks)):
-                ax.text(frequencies_list[i][peaks[j]], amplitudes_list[i][peaks[j]], f'({frequencies_list[i][peaks[j]]:.2f},\n {amplitudes_list[i][peaks[j]]:.2f})', fontsize=8)    
-
-
-    ax.set_xlabel('Рамановский сдвиг, см^-1')
-    ax.set_ylabel('Интенсивность')
-    canvas = FigureCanvasTkAgg(fig, master=frame)
-    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-    canvas.draw()
-
-    toolbar = NavigationToolbar2Tk(canvas, frame)
-    toolbar.update()
-    new_flag = True
 
 # Функция средней спектрограммы
 def averages_spectrum(averaged):
@@ -100,36 +72,17 @@ def selection(freq_list, ampl_list):
 
 # Сглаживание сигнала
 # Сглаживания сигнала методом savgol_filter
-def savgol_def(spectrum_list):
-    spectrum_list2 = []
+def savgol_def(spectrum_list): 
     window_length = int(entry5.get())
     polyorder = int(entry6.get())
-    
-    for i in range(len(spectrum_list)):
-        spectrum_list[i] = savgol_filter(spectrum_list[i], window_length, polyorder)
-        spectrum_list2.append(spectrum_list[i])
-    return spectrum_list2
-
-# Сглаживание сигнала методом средней скользящей
-def moving_average_smoothing(spectrum_list):
     spectrum_list2 = []
-    window_size = int(entry5.get())
-    if window_size % 2 == 0:
-        raise ValueError("Размер окна сглаживания должен быть нечетным числом")
-    if window_size < 1:
-        raise ValueError("Размер окна сглаживания должен быть больше нуля")
     for i in range(len(spectrum_list)):
-        smoothed_spectrum = np.zeros_like(spectrum_list[i])
-        half_window = window_size // 2
-        for j in range(half_window, len(spectrum_list[i]) - half_window):
-            window = spectrum_list[i][j - half_window:i + half_window + 1]
-            smoothed_spectrum[j] = np.mean(window)
-        # сглаживание краев спектра
-        smoothed_spectrum[:half_window] = np.mean(spectrum_list[i][:window_size])
-        smoothed_spectrum[-half_window:] = np.mean(spectrum_list[i][-window_size:])
-        spectrum_list2.append[smoothed_spectrum]
-
+        spectrum_list3 = savgol_filter(spectrum_list[i], window_length, polyorder)
+        spectrum_list2.append(spectrum_list3)
     return spectrum_list2
+
+
+
 
 # Нормализация
 # Нормализация спектра методом SNV
@@ -155,30 +108,64 @@ def normalized(spectrum_list):
         amplit_LIST[a] = normal(spectrum_list[a])
     return amplit_LIST
 
+# Строительтво графика на экране.
+def bilding(frequencies_list, amplitudes_list):
+    global new_flag, frame, root
+    if new_flag:
+        frame.destroy()
+    frame = tk.Frame(root)
+    frame.pack()
+
+    # frame.pack_propagate(False)
+    fig = Figure(figsize=(11.5, 7.9))
+    ax = fig.add_subplot()
+    for i in range(len(amplitudes_list)):
+        ax.plot(frequencies_list[i], amplitudes_list[i], alpha=0.5)
+        #Поиск пиков
+        if find_flag:
+            peaks, _ = find_peaks(amplitudes_list[i], width=float(entry7.get()), prominence=float(entry8.get()))
+            ax.plot(frequencies_list[i][peaks], amplitudes_list[i][peaks], 'ro')
+            for j in range(len(peaks)):
+                ax.text(frequencies_list[i][peaks[j]], amplitudes_list[i][peaks[j]], 
+                        f'({frequencies_list[i][peaks[j]]:.2f},\n {amplitudes_list[i][peaks[j]]:.2f})', fontsize=8)    
+
+
+    ax.set_xlabel('Рамановский сдвиг, см^-1')
+    ax.set_ylabel('Интенсивность')
+    canvas = FigureCanvasTkAgg(fig, master=frame)
+    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+    canvas.draw()
+
+    toolbar = NavigationToolbar2Tk(canvas, frame)
+    toolbar.update()
+    new_flag = True
+
 # Строительство по нажатию
 def get_input():
     global remove_flag, average_flag, amplitudes_list, frequencies_list
     timer = perf_counter()
     amplit_LIST = amplitudes_list
     freque_LIST = frequencies_list
-    if selection_flag:
+    if selection_flag:  
         freque_LIST, amplit_LIST = selection(freque_LIST, amplit_LIST)
+    # Сглаживание
     if savgol_filter_flag:
         amplit_LIST = savgol_def(amplit_LIST)
-    if moving_average_smoothing_flag:
-        for i in range(len(amplit_LIST)):
-            amplit_LIST[i] = moving_average_smoothing(amplit_LIST[i])
+    # Удаление базовой линии
     if remove_flag:
         amplit_LIST = delet_BaseLime(amplit_LIST)
-    if normalize_flag:
-        amplit_LIST = normalized(amplit_LIST)
+    # Нормализация
     if normalize_snv_flag:
         amplit_LIST = normalize_spectrum_snv(amplit_LIST)
+    elif normalize_flag:
+        amplit_LIST = normalized(amplit_LIST)
+    # Средней спектрограммы
     if average_flag:
         amplit_LIST = averages_spectrum(amplit_LIST)
         freque_LIST = averages_spectrum(freque_LIST)
-
+    # Строительство 
     bilding(freque_LIST, amplit_LIST)
+    
     print(perf_counter() - timer)
 
 
@@ -237,10 +224,14 @@ def actions6():
     global savgol_filter_flag
     savgol_filter_flag = not savgol_filter_flag
 
-def actions7():
-    global moving_average_smoothing_flag
-    moving_average_smoothing_flag = not moving_average_smoothing_flag
+# def actions7():
+#     global moving_average_smoothing_flag
+#     moving_average_smoothing_flag = not moving_average_smoothing_flag
 
+def actions9():
+    global selection_flag
+    selection_flag = not selection_flag
+    
 # пропадает надпись на поле ввода
 def on_entry_click(event):
     entry = event.widget
@@ -263,7 +254,7 @@ find_flag = False
 bild_flag = False
 new_flag = False
 average_flag = False
-selection_flag = True
+selection_flag = False
 normalize_flag = False
 moving_average_smoothing_flag = False
 
@@ -331,7 +322,15 @@ label.place(x=5, y=283)
 label = tk.Label(root, text="poly:", font=("Arial", 10))
 label.pack()  # Размещаем метку на окне
 label.place(x=5, y=303)
-#Поле ввода 1 и 2
+
+label = tk.Label(root, text="width:", font=("Arial", 10))
+label.pack()  # Размещаем метку на окне
+label.place(x=5, y=385)
+
+label = tk.Label(root, text="prom:", font=("Arial", 10))
+label.pack()  # Размещаем метку на окне
+label.place(x=5, y=405)
+# Полоса частотного диапазона
 # Поле ввода 1 (min_freq)
 entry1 = tk.Entry(root)
 entry1.insert(0, "min_freq")
@@ -344,6 +343,7 @@ entry2.insert(0, "max_freq")
 entry2.bind("<FocusIn>", on_entry_click)
 entry2.pack()
 entry2.place(x=40, y=70)
+# baseline_correction
 # Поле ввода 3 (lam)
 entry3 = tk.Entry(root)
 entry3.insert(0, "1000")
@@ -356,6 +356,7 @@ entry4.insert(0, "0.001")
 entry4.bind("<FocusIn>", on_entry_click)
 entry4.pack()
 entry4.place(x=40, y=162)
+# savgol_filter
 # Поле ввода 4 (window_length)
 entry5 = tk.Entry(root)
 entry5.insert(0, "25")
@@ -368,6 +369,19 @@ entry6.insert(0, "2")
 entry6.bind("<FocusIn>", on_entry_click)
 entry6.pack()
 entry6.place(x=40, y=305)
+#find_picks
+# Поле ввода 5 (width)
+entry7 = tk.Entry(root)
+entry7.insert(0, "10")
+entry7.bind("<FocusIn>", on_entry_click)
+entry7.pack()
+entry7.place(x=40, y=385)
+# Поле ввода 6 (prominence)
+entry8 = tk.Entry(root)
+entry8.insert(0, "10")
+entry8.bind("<FocusIn>", on_entry_click)
+entry8.pack()
+entry8.place(x=40, y=405)
 
 
 # Поле инструментов
@@ -382,9 +396,6 @@ label = tk.Label(root, text="Функции и параметры", font=("Arial
 label.pack()  # Размещаем метку на окне
 label.place(x=5, y=5)
 
-label = tk.Label(root, text="Выбор полосы частот", font=("Arial", 10))
-label.pack()  # Размещаем метку на окне
-label.place(x=5, y=26)
 
 label = tk.Label(root, text="Удаление БЛ", font=("Arial", 11))
 label.pack()  # Размещаем метку на окне
@@ -423,21 +434,27 @@ checkbox6 = tk.Checkbutton(root, text="Фильт. Савицкого-Голая
 checkbox6.pack()
 checkbox6.place(x=5, y=260)
 
-checkbox_var8 = tk.IntVar()
-checkbox8 = tk.Checkbutton(root, text="Метод ср. скользящей", variable=checkbox_var8, command=actions7)
-checkbox8.pack()
-checkbox8.place(x=5, y=322)
+# checkbox_var8 = tk.IntVar()
+# checkbox8 = tk.Checkbutton(root, text="Метод ср. скользящей", variable=checkbox_var8, command=actions7)
+# checkbox8.pack()
+# checkbox8.place(x=5, y=322)
 
 checkbox_var7 = tk.IntVar()
 checkbox7 = tk.Checkbutton(root, text="Нахожение среднего", variable=checkbox_var7, command=actions2)
 checkbox7.pack()
 checkbox7.place(x=5, y=342)
+
+checkbox_var8 = tk.IntVar()
+checkbox8 = tk.Checkbutton(root, text="Выбор полосы частот", variable=checkbox_var8, command=actions9)
+checkbox8.pack()
+checkbox8.place(x=5, y=25)
+
 # Создаем фрейм для размещения downbar
 bottom_frame = tk.Frame(root, height=30, bg='lightgray')
 bottom_frame.pack(side='bottom', fill='x')
 
 # Отображаем версию tkinter на полосе
-Program_version = 0.3472
+Program_version = 0.3572
 version_label = tk.Label(bottom_frame, text=f"Program version: {Program_version}", bg='lightgray')
 version_label.pack(side='right', padx=10)
 
